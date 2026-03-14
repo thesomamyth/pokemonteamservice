@@ -58,7 +58,12 @@ func (s service) getPokemonTeamHandler(c *gin.Context) {
 		return
 	}
 
-	summary := getPokemonTeamSummary(members)
+	fullTeam := make(map[*PokemonTeamMember]int)
+	for i := range members {
+		fullTeam[&members[i]] = teamNames.NameCounts[members[i].Name]
+	}
+
+	summary := getPokemonTeamSummary(fullTeam)
 
 	response := PokemonTeamResponse{
 		Members: members,
@@ -130,10 +135,10 @@ type PokemonTeamSummary struct {
 func (s service) getPokemonTeamMembers(names []string) ([]PokemonTeamMember, error) {
 	result := make([]PokemonTeamMember, 0, len(names))
 
-	for i := range names { // TODO: parallel?
-		pokemon, err := s.pokemonapi.Pokemon.GetPokemon(names[i])
+	for _, name := range names { // TODO: parallel?
+		pokemon, err := s.pokemonapi.Pokemon.GetPokemon(name)
 		if err != nil {
-			return nil, fmt.Errorf("error fetching data for pokemon %s: %w", names[i], err)
+			return nil, fmt.Errorf("error fetching data for pokemon %s: %w", name, err)
 		}
 		member := PokemonTeamMember{
 			Name:   pokemon.Name,
@@ -165,7 +170,7 @@ func (s service) getPokemonTeamMembers(names []string) ([]PokemonTeamMember, err
 	return result, nil
 }
 
-func getPokemonTeamSummary(team []PokemonTeamMember) PokemonTeamSummary {
+func getPokemonTeamSummary(team map[*PokemonTeamMember]int) PokemonTeamSummary {
 	summary := PokemonTeamSummary{
 		TypeCounts: make(map[string]int),
 	}
@@ -173,14 +178,18 @@ func getPokemonTeamSummary(team []PokemonTeamMember) PokemonTeamSummary {
 		return summary
 	}
 	totalHeight := 0
-	for _, member := range team {
-		summary.TotalWeight += member.Weight
-		totalHeight += member.Height
-		summary.TotalHP += member.Stats.HP
+	for member, count := range team {
+		summary.TotalWeight += member.Weight * count
+		totalHeight += member.Height * count
+		summary.TotalHP += member.Stats.HP * count
 		for _, t := range member.Types {
-			summary.TypeCounts[t]++
+			summary.TypeCounts[t] += count
 		}
 	}
-	summary.AverageHeight = float64(totalHeight) / float64(len(team))
+	totalTeamCount := 0
+	for _, count := range team {
+		totalTeamCount += count
+	}
+	summary.AverageHeight = float64(totalHeight) / float64(totalTeamCount)
 	return summary
 }
