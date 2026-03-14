@@ -169,6 +169,9 @@ func getPokemonTeamSummary(team []PokemonTeamMember) PokemonTeamSummary {
 	summary := PokemonTeamSummary{
 		TypeCounts: make(map[string]int),
 	}
+	if len(team) == 0 {
+		return summary
+	}
 	totalHeight := 0
 	for _, member := range team {
 		summary.TotalWeight += member.Weight
