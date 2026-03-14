@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	pokego "github.com/JoshGuarino/PokeGo/pkg"
 	"github.com/gin-gonic/gin"
 )
 
@@ -13,16 +14,25 @@ func main() {
 	router.Run(":8080")
 }
 
+type service struct {
+	r          *gin.Engine
+	pokemonapi pokego.PokeGo // TODO: extract to interface
+}
+
 func setupRouter() *gin.Engine {
+	pokemonClient := pokego.NewClient()
+	s := service{
+		pokemonapi: pokemonClient,
+	}
 	router := gin.Default()
 	router.SetTrustedProxies(nil)
-	router.GET("/pokemon/team", getPokemonTeamHandler)
+	router.GET("/pokemon/team", s.getPokemonTeamHandler)
 	return router
 }
 
 const maxPokemon = 6
 
-func getPokemonTeamHandler(c *gin.Context) {
+func (s service) getPokemonTeamHandler(c *gin.Context) {
 	query, exists := c.GetQuery("names")
 	if !exists || query == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "At least 1 pokemon name is required"})
@@ -41,13 +51,21 @@ func getPokemonTeamHandler(c *gin.Context) {
 		return
 	}
 
-	teamData, err := getPokemonTeamData(teamNames.UniqueNames)
+	members, err := s.getPokemonTeamMembers(teamNames.UniqueNames)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error fetching pokemon data"})
+		// Since this is not sensitive data, we bubble up the error message
+		c.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusNotImplemented, gin.H{"team": teamData})
+	summary := getPokemonTeamSummary(members)
+
+	response := PokemonTeamResponse{
+		Members: members,
+		Summary: summary,
+	}
+
+	c.JSON(http.StatusOK, gin.H{"team": response})
 }
 
 type teamNameInfo struct {
@@ -64,8 +82,8 @@ func filterNames(names string) teamNameInfo {
 		NameCounts:  make(map[string]int, len(splitNames)),
 	}
 
-	for i := range splitNames {
-		trimmed := strings.TrimSpace(splitNames[i])
+	for _, splitName := range splitNames {
+		trimmed := strings.TrimSpace(splitName)
 		if trimmed == "" {
 			continue
 		}
@@ -80,7 +98,86 @@ func filterNames(names string) teamNameInfo {
 	return result
 }
 
+type PokemonTeamResponse struct {
+	Members []PokemonTeamMember `json:"members"`
+	Summary PokemonTeamSummary  `json:"summary"`
+}
+
+type PokemonTeamMember struct {
+	Name   string                 `json:"name"`
+	Height int                    `json:"height"`
+	Weight int                    `json:"weight"`
+	Types  []string               `json:"types"`
+	Stats  PokemonTeamMemberStats `json:"stats"`
+	Image  string                 `json:"image"`
+}
+
+type PokemonTeamMemberStats struct {
+	HP      int `json:"hp"`
+	Attack  int `json:"attack"`
+	Defense int `json:"defense"`
+	Speed   int `json:"speed"`
+}
+
+type PokemonTeamSummary struct {
+	TotalWeight   int            `json:"total_weight"`
+	AverageHeight float64        `json:"average_height"`
+	TotalHP       int            `json:"total_hp"`
+	TypeCounts    map[string]int `json:"type_counts"`
+}
+
 // Assumes no duplicates
-func getPokemonTeamData(names []string) (map[string]interface{}, error) {
-	return nil, fmt.Errorf("not implemented")
+func (s service) getPokemonTeamMembers(names []string) ([]PokemonTeamMember, error) {
+	result := make([]PokemonTeamMember, 0, len(names))
+
+	for i := range names { // TODO: parallel?
+		pokemon, err := s.pokemonapi.Pokemon.GetPokemon(names[i])
+		if err != nil {
+			return nil, fmt.Errorf("error fetching data for pokemon %s: %w", names[i], err)
+		}
+		member := PokemonTeamMember{
+			Name:   pokemon.Name,
+			Height: pokemon.Height,
+			Weight: pokemon.Weight,
+			Types:  make([]string, 0, len(pokemon.Types)),
+			Stats:  PokemonTeamMemberStats{},
+			Image:  pokemon.Sprites.FrontDefault,
+		}
+		for _, stat := range pokemon.Stats {
+			statName := stat.Stat.Name
+			switch statName {
+			case "hp":
+				member.Stats.HP = stat.BaseStat
+			case "attack":
+				member.Stats.Attack = stat.BaseStat
+			case "defense":
+				member.Stats.Defense = stat.BaseStat
+			case "speed":
+				member.Stats.Speed = stat.BaseStat
+			}
+		}
+		for _, t := range pokemon.Types {
+			member.Types = append(member.Types, t.Type.Name)
+		}
+		result = append(result, member)
+	}
+
+	return result, nil
+}
+
+func getPokemonTeamSummary(team []PokemonTeamMember) PokemonTeamSummary {
+	summary := PokemonTeamSummary{
+		TypeCounts: make(map[string]int),
+	}
+	totalHeight := 0
+	for _, member := range team {
+		summary.TotalWeight += member.Weight
+		totalHeight += member.Height
+		summary.TotalHP += member.Stats.HP
+		for _, t := range member.Types {
+			summary.TypeCounts[t]++
+		}
+	}
+	summary.AverageHeight = float64(totalHeight) / float64(len(team))
+	return summary
 }

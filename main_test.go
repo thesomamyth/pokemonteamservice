@@ -36,6 +36,11 @@ func TestGetPokemonTeam(t *testing.T) {
 			status: http.StatusBadRequest,
 			body:   "{\"message\":\"No more than 6 pokemon names are allowed\"}",
 		},
+		"valid query with 1 pokemon": {
+			query:  "bulbasaur",
+			status: http.StatusOK,
+			body:   "{\"team\":{\"members\":[{\"name\":\"bulbasaur\",\"height\":7,\"weight\":69,\"types\":[\"grass\",\"poison\"],\"stats\":{\"hp\":45,\"attack\":49,\"defense\":49,\"speed\":45},\"image\":\"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png\"}],\"summary\":{\"total_weight\":69,\"average_height\":7,\"total_hp\":45,\"type_counts\":{\"grass\":1,\"poison\":1}}}}",
+		},
 	}
 
 	for name, tc := range testcases {
