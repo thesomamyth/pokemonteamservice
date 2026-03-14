@@ -42,7 +42,6 @@ func (r *pokemonTeamRouter) getPokemonTeamHandler(c *gin.Context) {
 	}
 
 	teamNames := filterNames(query)
-
 	if len(teamNames.Names) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "At least 1 pokemon name is required"})
 		return
