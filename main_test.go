@@ -49,7 +49,12 @@ func TestGetPokemonTeam(t *testing.T) {
 		"valid query with duplicate pokemon": {
 			query:  "pikachu,bulbasaur,pikachu",
 			status: http.StatusOK,
-			body:   "{\"team\":{\"members\":[{\"name\":\"pikachu\",\"height\":4,\"weight\":60,\"types\":[\"electric\"],\"stats\":{\"hp\":35,\"attack\":55,\"defense\":40,\"speed\":90},\"image\":\"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png\"},{\"name\":\"bulbasaur\",\"height\":7,\"weight\":69,\"types\":[\"grass\",\"poison\"],\"stats\":{\"hp\":45,\"attack\":49,\"defense\":49,\"speed\":45},\"image\":\"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png\"}],\"summary\":{\"total_weight\":199,\"average_height\":5,\"total_hp\":125,\"type_counts\":{\"electric\":2,\"grass\":1,\"poison\":1}}}}",
+			body:   "{\"team\":{\"members\":[{\"name\":\"pikachu\",\"height\":4,\"weight\":60,\"types\":[\"electric\"],\"stats\":{\"hp\":35,\"attack\":55,\"defense\":40,\"speed\":90},\"image\":\"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png\"},{\"name\":\"bulbasaur\",\"height\":7,\"weight\":69,\"types\":[\"grass\",\"poison\"],\"stats\":{\"hp\":45,\"attack\":49,\"defense\":49,\"speed\":45},\"image\":\"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png\"}],\"summary\":{\"total_weight\":189,\"average_height\":5,\"total_hp\":115,\"type_counts\":{\"electric\":2,\"grass\":1,\"poison\":1}}}}",
+		},
+		"invalid pokemon name": {
+			query:  "pikachu,bulbasaur,notapokemon",
+			status: http.StatusBadRequest,
+			body:   "{\"message\":\"notapokemon is not a valid pokemon name\"}",
 		},
 	}
 

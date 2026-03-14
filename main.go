@@ -53,6 +53,10 @@ func (s service) getPokemonTeamHandler(c *gin.Context) {
 
 	members, err := s.getPokemonTeamMembers(teamNames.UniqueNames)
 	if err != nil {
+		if strings.Contains(err.Error(), "is not a valid pokemon name") {
+			c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			return
+		}
 		// Since this is not sensitive data, we bubble up the error message
 		c.JSON(http.StatusInternalServerError, err.Error())
 		return
@@ -135,9 +139,13 @@ type PokemonTeamSummary struct {
 func (s service) getPokemonTeamMembers(names []string) ([]PokemonTeamMember, error) {
 	result := make([]PokemonTeamMember, 0, len(names))
 
-	for _, name := range names { // TODO: parallel?
+	for _, name := range names {
 		pokemon, err := s.pokemonapi.Pokemon.GetPokemon(name)
 		if err != nil {
+			if strings.Contains(err.Error(), "invalid") {
+				return nil, fmt.Errorf("%s is not a valid pokemon name", name)
+			}
+
 			return nil, fmt.Errorf("error fetching data for pokemon %s: %w", name, err)
 		}
 		member := PokemonTeamMember{
