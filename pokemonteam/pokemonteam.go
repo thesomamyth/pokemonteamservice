@@ -100,6 +100,7 @@ func GetPokemonTeamSummary(team map[*Member]int) Summary {
 		return summary
 	}
 	totalHeight := 0
+	totalTeamCount := 0
 	for member, count := range team {
 		summary.TotalWeight += member.Weight * count
 		totalHeight += member.Height * count
@@ -107,9 +108,6 @@ func GetPokemonTeamSummary(team map[*Member]int) Summary {
 		for _, t := range member.Types {
 			summary.TypeCounts[t] += count
 		}
-	}
-	totalTeamCount := 0
-	for _, count := range team {
 		totalTeamCount += count
 	}
 	summary.AverageHeight = float64(totalHeight) / float64(totalTeamCount)
