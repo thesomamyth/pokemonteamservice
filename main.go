@@ -37,29 +37,29 @@ type PokemonTeamResponse struct {
 func (r *pokemonTeamRouter) getPokemonTeamHandler(c *gin.Context) {
 	query, exists := c.GetQuery("names")
 	if !exists || query == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "At least 1 pokemon name is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "At least 1 pokemon name is required"})
 		return
 	}
 
 	teamNames := filterNames(query)
 	if len(teamNames.Names) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "At least 1 pokemon name is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "At least 1 pokemon name is required"})
 		return
 	}
 
 	if len(teamNames.Names) > pokemonteam.MaxPokemon {
-		c.JSON(http.StatusBadRequest, gin.H{"message": fmt.Sprintf("No more than %d pokemon names are allowed", pokemonteam.MaxPokemon)})
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("No more than %d pokemon names are allowed", pokemonteam.MaxPokemon)})
 		return
 	}
 
 	members, err := r.teamService.GetMembers(teamNames.UniqueNames)
 	if err != nil {
 		if strings.Contains(err.Error(), "is not a valid pokemon name") {
-			c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		// Since this is not sensitive data, we bubble up the error message
-		c.JSON(http.StatusInternalServerError, err.Error())
+		// Since this is not sensitive data, we can bubble up the error message
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 

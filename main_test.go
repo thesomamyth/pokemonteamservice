@@ -19,22 +19,22 @@ func TestGetPokemonTeamEndpoint(t *testing.T) {
 		"empty query": {
 			query:  "",
 			status: http.StatusBadRequest,
-			body:   "{\"message\":\"At least 1 pokemon name is required\"}",
+			body:   "{\"error\":\"At least 1 pokemon name is required\"}",
 		},
 		"empty query with commas": {
 			query:  ",,,,",
 			status: http.StatusBadRequest,
-			body:   "{\"message\":\"At least 1 pokemon name is required\"}",
+			body:   "{\"error\":\"At least 1 pokemon name is required\"}",
 		},
 		"empty query with whitespace": {
 			query:  "  ,  ,  ",
 			status: http.StatusBadRequest,
-			body:   "{\"message\":\"At least 1 pokemon name is required\"}",
+			body:   "{\"error\":\"At least 1 pokemon name is required\"}",
 		},
 		"too many pokemon": {
 			query:  "pikachu,bulbasaur,charmander,squirtle,eevee,meowth,psyduck",
 			status: http.StatusBadRequest,
-			body:   "{\"message\":\"No more than 6 pokemon names are allowed\"}",
+			body:   "{\"error\":\"No more than 6 pokemon names are allowed\"}",
 		},
 		"valid query with 1 pokemon": {
 			query:  "bulbasaur",
@@ -54,7 +54,7 @@ func TestGetPokemonTeamEndpoint(t *testing.T) {
 		"invalid pokemon name": {
 			query:  "pikachu,bulbasaur,notapokemon",
 			status: http.StatusBadRequest,
-			body:   "{\"message\":\"notapokemon is not a valid pokemon name\"}",
+			body:   "{\"error\":\"notapokemon is not a valid pokemon name\"}",
 		},
 	}
 
